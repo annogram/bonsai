@@ -1,0 +1,9 @@
+# ignore build directories 
+lib
+dist
+coverage
+logs
+test-results
+
+# ignore dependency cache directory
+node_modules/

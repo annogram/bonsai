@@ -1,0 +1,51 @@
+{
+  "name": "bonsai-json",
+  "version": "0.1.1",
+  "description": "JSON transformation library based on JSONPath",
+  "main": "./lib/index.js",
+  "types": "./lib/index.d.ts",
+  "scripts": {
+    "build": "npm run lint && tsc -p tsconfig-build.json",
+    "lint": "eslint . --ext .ts",
+    "test": "jest --coverage",
+    "pack": "rimraf ./dist && mkdir dist && cd dist && npm pack ../"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/annogram/bonsai"
+  },
+  "keywords": [
+    "JSON",
+    "Mapping",
+    "JSONPath",
+    "Typescript",
+    "Bonsai"
+  ],
+  "author": "Annogram",
+  "license": "GNU GENERAL PUBLIC LICENSE",
+  "bugs": {
+    "url": "https://github.com/annogram/bonsai/issues"
+  },
+  "homepage": "https://github.com/annogram/bonsai",
+  "devDependencies": {
+    "@types/jest": "^26.0.7",
+    "@types/jsonpath": "^0.2.0",
+    "@types/node": "^14.6.0",
+    "eslint": "^7.5.0",
+    "jest": "^26.0.1",
+    "rimraf": "^3.0.2",
+    "ts-jest": "^26.1.3",
+    "ts-node": "^8.10.1",
+    "typescript": "^3.9.7",
+    "@typescript-eslint/eslint-plugin": "^3.9.1",
+    "@typescript-eslint/parser": "^3.9.1"
+  },
+  "dependencies": {
+    "@types/ramda": "^0.27.19",
+    "jsonpath": "^1.0.2",
+    "ramda": "^0.27.1"
+  },
+  "files": [
+    "lib/**/*"
+  ]
+}
