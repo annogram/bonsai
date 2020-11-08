@@ -108,8 +108,70 @@ const template = {
 const mapper = new Mapper( template );
 
 // load source document
+// {
+//     "foo": {
+//         "name": "Company Holdings Ltd.",
+//         "items": {
+//             "values": [
+//                 "bandana",
+//                 "soleless shoes",
+//                 "rugsack"
+//             ]
+//         },
+//         "products": [
+//             {
+//                 "Id": 0001,
+//                 "info": {
+//                     "description": "bandana",
+//                 },
+//                 "unitPrice": 12.00
+//             },
+//             {
+//                 "Id": 0002,
+//                 "info": {
+//                     "description": "soleless shoes",
+//                 },
+//                 "unitPrice": 120.00
+//             },
+//             {
+//                 "Id": 0003,
+//                 "info": {
+//                     "description": "rugsack",
+//                 },
+//                 "unitPrice": 200.00
+//             }
+//         ]
+//     }
+// }
 const source = ....
 const mappedObject = mapper.map( source );
+
+// Output
+// {
+//     "name": "Company Holdings Ltd.",
+//     "values": [
+//         "bandana",
+//         "soleless shoes",
+//         "rugsack"
+//     ],
+//     "products": [
+//         {
+//             "sku": 0001,
+//             "description": "bandana",
+//             "price": 12.00
+//         },
+//         {
+//             "sku": 0001,
+//             "description": "soleless shoes",
+//             "price": 120.00
+//         },
+//         {
+//             "sku": 0001,
+//             "description": "rugsack",
+//             "price": 200.00
+//         }
+//     ]
+// }
 ```
 
 ## Template Example: Fetching single property.
@@ -173,6 +235,37 @@ const mappedObject = mapper.map( source );
 }
 
 ```
+
+## Template Example: Merge multiple sources
+
+When you have multiple data payloads and want to merge overwriting any information from right to left you can do this by passing multiple entries into the `map` function
+
+```typescript
+import { Mapper } from "@ot-sync-platform/json-to-json-mapper";
+
+const template = {
+    name: "$.foo.name",
+    values: [ "$..foo.items.values" ],
+    products: [
+        "$.foo.products", 
+        {
+            sku: "$.id",
+            description: "$.info.description",
+            price: "$.unitPrice"
+        }
+    ]
+}
+
+const mapper = new Mapper( template );
+
+const source = ....
+const source1 = ....
+
+const mappedObject = mapper.map( source, source1 );
+
+```
+
+Any properties in _source_ that differ from _source1_ will be overridden. Arrays will be concatenated.
 
 # Using middleware
 
