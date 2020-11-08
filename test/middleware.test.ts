@@ -57,4 +57,40 @@ describe("middleware.ts", () => {
         // assert
         expect(actualValue).toEqual(expectedValue)
     })
+
+    test("test mergeObjects", () => {
+        // arrange
+        const template = {
+            mergedObjects: { $mergeObjects: "$.foo" }
+        }
+        const source = {
+            foo: [
+                {
+                    value: "cheese"
+                },
+                {
+                    number: 1
+                },
+                {
+                    deeper: {
+                        hello: "world"
+                    }
+                }
+            ]
+        }
+        const expectedValue = {
+            mergedObjects: {
+                value: "cheese",
+                number: 1,
+                deeper: {
+                    hello: "world"
+                }
+            }
+        }
+        // act
+        const mapper = new Mapper(template, defaultMiddleware)
+        const actualValue = mapper.map(source)
+        // assert
+        expect(actualValue).toEqual(expectedValue)
+    })
 })
