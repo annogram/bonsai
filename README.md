@@ -386,7 +386,7 @@ and the output would be:
 }
 ```
 
-## Templates with mddleware
+## Templates with middleware
 
 Passing middleware will enable you to write middleware templates. Templates have this interesting type:
 
