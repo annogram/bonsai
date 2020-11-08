@@ -39,4 +39,22 @@ describe("middleware.ts", () => {
         // assert
         expect(actualValue).toEqual(expectedValue)
     })
+
+    test("test getFirstElement", () => {
+        // arrange
+        const template = {
+            firstValue: { $getFirstElement: "$..allValues" }
+        }
+        const source = {
+            foo: { data: { allValues: [100, 2, 12, 3] } }
+        }
+        const expectedValue = {
+            firstValue: 100
+        }
+        // act
+        const mapper = new Mapper(template, defaultMiddleware)
+        const actualValue = mapper.map(source)
+        // assert
+        expect(actualValue).toEqual(expectedValue)
+    })
 })
