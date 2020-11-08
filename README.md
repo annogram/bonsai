@@ -90,7 +90,7 @@ This implementation is modelled on that provided by [jsonpath-object-transform](
 
 ## Usage
 ```typescript
-import { Mapper } from "@ot-sync-platform/json-to-json-mapper";
+import { Mapper } from "bonasi-json";
 
 const template = {
     name: "$.foo.name",
@@ -241,7 +241,7 @@ const mappedObject = mapper.map( source );
 When you have multiple data payloads and want to merge overwriting any information from right to left you can do this by passing multiple entries into the `map` function
 
 ```typescript
-import { Mapper } from "@ot-sync-platform/json-to-json-mapper";
+import { Mapper } from "bonasi-json";
 
 const template = {
     name: "$.foo.name",
