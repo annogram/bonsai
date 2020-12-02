@@ -1,5 +1,7 @@
 import { describe, test, expect } from "@jest/globals";
+import { promisify } from "util";
 import { Mapper } from "../src/mapper";
+import defaultMiddleware from "../src/middleware";
 
 describe("mapper.ts", () => {
   test("mapSingleValue via JSONPath", () => {
@@ -453,4 +455,47 @@ describe("mapper.ts", () => {
     // assert
     expect(actualValue).toEqual(expectedValue)
   })
+
+  
+  test("Asynchronous middleware", async () => {
+    const promisedTimeout = promisify(setTimeout)
+    // arrange
+    const customMiddleware = {
+        "$write5Ones": async () => {
+            await promisedTimeout(1000)
+            return 11111
+        }
+    }
+    const template = {
+        "name": { $override: { x: "$.bar", y: "$.info.name" } },
+        "type": {
+            complexInnerType: "$.innerType",
+            innerName: { $write5Ones: null, literal: true }
+        }
+    }
+    const source = {
+        bar: "ANAME",
+        innerType: true,
+        info: {
+            name: "Tony"
+        }
+    }
+
+    const expectedValue = {
+        name: "Tony",
+        type: {
+            complexInnerType: true,
+            innerName: 11111
+        }
+    }
+
+    // act
+    const mapper = new Mapper(template, {
+        ...defaultMiddleware,
+        ...customMiddleware
+    })
+    const actualValue = await mapper.map(source)
+    // assert
+    expect(actualValue).toEqual(expectedValue)
+})
 });
