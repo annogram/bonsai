@@ -4,7 +4,11 @@ import { query } from "jsonpath"
 
 const mergeResults: (x: MappedObject, y: MappedObject) => MappedObject = R.mergeDeepWith((x, y) => Array.isArray(x) && Array.isArray(y) ? R.concat(x, y) : y)
 
+const isPromise = (promise: unknown) => !!promise && promise instanceof Promise;
+
 export class Mapper {
+  private asyncResults: Array<{ key: string, subResult: Record<string, unknown> }> = [];
+
   constructor(private template: Template, private middleWare?: MiddleWare, private specialOperand: string = "$") { }
 
   /**
@@ -12,10 +16,19 @@ export class Mapper {
    * keys, then the parameters further down the list will override previously mapped keys. Arrays will be concatenated.
    * @param source Input data to be shaped into a new format
    */
-  map(...source: SourceObject[]): MappedObject {
+  map(...source: SourceObject[]): MappedObject | Promise<MappedObject> {
     const results: MappedObject[] = source.map(() => ({}))
-    source.forEach((v, i) => this.walk(v, this.template, results[i], ""))
-    return R.reduce((acc, v) => mergeResults(acc, v), results[0], results.slice(1))
+
+    source.forEach(async (v, i) => this.walk(v, this.template, results[i], ""))
+
+    if (this.asyncResults.length > 0) {
+      return Promise.all(this.asyncResults.map(async ({ key, subResult }) => {
+        subResult[key] = await subResult[key]
+      }))
+        .then(() => R.reduce(mergeResults, results[0], results.slice(1)))
+    }
+
+    return R.reduce(mergeResults, results[0], results.slice(1))
   }
 
   private mapSingleValue(source: SourceObject, path: string, result: MappedObject, key: string): void {
@@ -82,6 +95,7 @@ export class Mapper {
             } else {
               result[key] = this.middleWare[fn](data, template.literal)
             }
+            if (isPromise(result[key])) this.asyncResults.push({ key, subResult: result })
           } catch (error) {
             throw new MiddlewareExecutionError("Middleware execution failed for key: " + key
               + "\nFor the function: " + fn

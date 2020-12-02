@@ -1,5 +1,6 @@
 import defaultMiddleware from "../src/middleware";
 import { Mapper } from "../src/index";
+import { promisify } from "util";
 
 describe("middleware.ts", () => {
     test("default middleware used with mapper correctly", () => {
@@ -90,6 +91,48 @@ describe("middleware.ts", () => {
         // act
         const mapper = new Mapper(template, defaultMiddleware)
         const actualValue = mapper.map(source)
+        // assert
+        expect(actualValue).toEqual(expectedValue)
+    })
+
+    test("Asynchronous middleware", async () => {
+        const promisedTimeout = promisify(setTimeout)
+        // arrange
+        const customMiddleware = {
+            "$write5Ones": async () => {
+                await promisedTimeout(1000)
+                return 11111
+            }
+        }
+        const template = {
+            "name": { $override: { x: "$.bar", y: "$.info.name" } },
+            "type": {
+                complexInnerType: "$.innerType",
+                innerName: { $write5Ones: null, literal: true }
+            }
+        }
+        const source = {
+            bar: "ANAME",
+            innerType: true,
+            info: {
+                name: "Tony"
+            }
+        }
+
+        const expectedValue = {
+            name: "Tony",
+            type: {
+                complexInnerType: true,
+                innerName: 11111
+            }
+        }
+
+        // act
+        const mapper = new Mapper(template, {
+            ...defaultMiddleware,
+            ...customMiddleware
+        })
+        const actualValue = await mapper.map(source)
         // assert
         expect(actualValue).toEqual(expectedValue)
     })
