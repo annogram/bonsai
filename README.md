@@ -291,10 +291,30 @@ const mapper = new Mapper(...template,
 Middleware functions are operations that operate on some input on the template and provide an output that will be used for the template. The type of a middleware function is:
 
 ```typescript
-(data: any, query: boolean) => unknown
+(data: any, literal?: boolean) => unknown
 ```
 
-The `data` parameter is a value that is defined in the template. The `query` parameter is an optional flag which denotes that the data is JSONpath query not a type to act on directly.
+The `data` parameter is a value that is defined in the template. The `literal` parameter is an optional flag which denotes that the data is JSONpath query not a type to act on directly. This is returned by convenience so you can know if the data being passed to your functions is literal or not as defined by the template.
+
+if you want to pass more than one value into your function you will need to make the signature something like this:
+
+```typescript
+$intersection: ({ x, y }: { x: unknown[], y: unknown[] }): unknown[] => ...
+```
+
+Then when your template will look something like this:
+
+```json
+{
+    "both": {
+        "$intersection": {
+            "x": "$.daisy",
+            "y": "$.paul"
+            }
+    }
+}
+
+```
 
 ### Non-query example
 
@@ -326,6 +346,8 @@ and the payload might look like this:
 ```
 
 This indicates that we want to pass the string `TEST_NAME` literally into the type field. The result will be:
+
+> Note that the any string that does not begin with a `$` is not attempted to be resolved. The literal exists for valid situations where the strings which are passed through the template begin with a `$` and you **DO NOT** want bonsai to evaluate it.
 
 ```json
 { "name": "ANAME", "type": "TEST_NAME" }
@@ -456,4 +478,279 @@ const mapper = new Mapper(template,
             }
         }
     );
+```
+
+### List of default middleware
+
+Below is a list of default middleware and their use cases.
+
+### $getFirstElement
+
+Signature:  `(x: unknown[]): unknown`
+
+Description: Use primarily for when operating deep within an hierarchy and you want to simplify a query. Currently the only way to simplify a query is to use the pattern defined in _Transforming array of objects in source_ where you can make subqueries in an array. 
+
+```typescript
+{
+    propertyName: [ 
+        "$.path.to.field.with.array.of.objects", // path from root
+        {
+            propertName: "$.item.field" // sub path
+        } 
+    ]
+}
+```
+
+you can use the pattern above with the `$getFirstElement` middleware to create an array of size one and then extract that value as a property instead of an array
+
+
+Example: 
+
+```typescript
+{
+    propertyName: {
+        $getFirstElement: [ 
+            "$.path.to.field.with.array.of.objects", // path from root
+            {
+                propertName: "$.item.field" // sub path
+            } 
+        ]
+    }
+}
+```
+
+### $identity
+
+Signature:  `(x: unknown): unknown`
+
+Description: This is primarily used when you want to pass a string value that starts with a dollar sign literally
+
+Example: 
+
+```typescript
+{
+    value: { $identity "$.Some non query value", literal: true }
+}
+
+```
+
+### $mergeObjects
+
+Signature:  `(x: unknown[]): unknown`
+
+Description:  Used to merge two objects in source
+
+Example: 
+
+```typescript
+template = {
+    mergedObjects: { $mergeObjects: "$.foo" }
+}
+source = {
+    foo: [
+        {
+            value: "cheese"
+        },
+        {
+            number: 1
+        },
+        {
+            deeper: {
+                hello: "world"
+            }
+        }
+    ]
+}
+expectedValue = {
+    mergedObjects: {
+        value: "cheese",
+        number: 1,
+        deeper: {
+            hello: "world"
+        }
+    }
+}
+```
+
+### $override
+
+Signature:  `({ x, y }: { x: unknown, y: unknown }): unknown`
+
+Description: Will override a value if another value is present
+
+Example: 
+
+```typescript
+template = {
+    "name": { $override: { x: "$.bar", y: "$.info.name" } },
+    "type": {
+        complexInnerType: "$.innerType"
+    }
+}
+
+source = {
+    bar: "ANAME",
+    innerType: true,
+    info: {
+        name: "Tony"
+    }
+}
+
+expectedValue = {
+    name: "Tony",
+    type: {
+        complexInnerType: true
+}
+```
+
+### $unique
+
+Signature:  `(list: readonly T[]): T[]`
+
+Description: Removes duplicates from a list
+
+Example: 
+
+```typescript
+template = {
+    onlyOne: { $unique: "$.foo" }
+}
+
+source = {
+    foo: [1, 1, 2, 4, 4, 4, 4, 4, 5, 7, 8, 8,]
+}
+
+expectedValue = { onlyOne: [1, 2, 4, 5, 7, 8] }
+
+```
+
+### $union
+
+Signature:  `({ x, y }: { x: unknown[], y: unknown[] }): unknown[] `
+
+Description: Get the union of two lists
+
+Example: 
+
+```typescript
+template = {
+    combined: { $union: { x: "$.daisy", y: "$.paul" } }
+}
+
+source = {
+    daisy: [
+        "apple",
+        "pineapple",
+        "plumb",
+        "orange",
+        "pizza",
+        "grapes"
+    ],
+    paul: [
+        "kiwi",
+        "orange",
+        "apricot",
+        "apple",
+        "banana",
+        "pizza"
+    ]
+}
+
+expectedValue = {
+    combined: [
+        "apple",
+        "pineapple",
+        "plumb",
+        "orange",
+        "pizza",
+        "grapes",
+        "kiwi",
+        "apricot",
+        "banana"
+    ]
+}
+```
+
+### $intersection
+
+Signature:  `({ x, y }: { x: unknown[], y: unknown[] }): unknown[]`
+
+Description: Get only the elements that are common in two lists
+
+Example:
+
+```typescript
+template = {
+    both: { $intersection: { x: "$.daisy", y: "$.paul" } }
+}
+
+source = {
+    daisy: [
+        "apple",
+        "pineapple",
+        "plumb",
+        "orange",
+        "pizza",
+        "grapes"
+    ],
+    paul: [
+        "kiwi",
+        "orange",
+        "apricot",
+        "apple",
+        "banana",
+        "pizza"
+    ]
+}
+
+expectedValue = { both: ["apple", "orange", "pizza"] }
+```
+
+### $some
+
+Signature:  `({ x, arr }: { x: unknown, arr: unknown[] }): boolean`
+
+Description: will return true if one of the values are present in the array. Remember that the array can be a queried object so you can create arrays using JSONPath and bonsai that are populated from multiple areas of your source data.
+
+Example: 
+
+```typescript
+template = { valid: { $some: { x: "beans", arr: "$.items" } } }
+
+source = {
+    items: [
+        "cheese",
+        "chicken",
+        "water",
+        "beans"
+    ]
+}
+
+expectedValue = { valid: true }
+```
+
+### $every
+
+Signature:  `({ x, arr }: { x: unknown, arr: unknown[] }): boolean`
+
+Description: will return true if all of the values in the array are equal to `x`. Remember that the array can be a queried object so you can create arrays using JSONPath and bonsai that are populated from multiple areas of your source data.
+
+Example: 
+
+```typescript
+template = {
+    totalSuccess: { $every: { x: "passed", arr: ["$..passed"] } }
+}
+
+source = {
+    processed: [
+        { item: 1, duration: 19.2, passed: "passed" },
+        { item: 2, duration: 31, passed: "passed" },
+        { item: 3, duration: 104, passed: "passed" },
+        { item: 4, duration: 12, passed: "passed" },
+        { item: 5, duration: 4, passed: "passed" },
+    ]
+}
+
+expectedValue = { totalSuccess: true }
 ```
