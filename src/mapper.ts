@@ -25,6 +25,7 @@ export class Mapper {
       return Promise.all(this.asyncResults.map(async ({ key, subResult }) => {
         subResult[key] = await subResult[key]
       }))
+        .then(() => this.asyncResults = [])
         .then(() => R.reduce(mergeResults, results[0], results.slice(1)))
     }
 
