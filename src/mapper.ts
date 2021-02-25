@@ -111,6 +111,9 @@ export class Mapper {
 
   private walk(source: any, path: any, result: any, key: any): void {
     const type = this.type(path)
+    if (this.type(key) === "string" && key?.indexOf('$') == 0) {
+      key = query(source, key)
+    }
     switch (type) {
       case "string": {
         this.mapSingleValue(source, path as string, result, key)

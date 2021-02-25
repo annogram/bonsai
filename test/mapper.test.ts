@@ -9,7 +9,7 @@ describe("mapper.ts", () => {
       "name": "$.foo"
     });
 
-    expect(mapper.map({ foo: "ANAME" }, {foo:"BNAME"})).toEqual({ name: "BNAME" });
+    expect(mapper.map({ foo: "ANAME" }, { foo: "BNAME" })).toEqual({ name: "BNAME" });
   });
 
   test("mapSingleValue - literal value", () => {
@@ -25,7 +25,7 @@ describe("mapper.ts", () => {
       "name": "$.foo"
     });
 
-    expect(mapper.map({ foo: ["ANAME", "BNAME"] }, {foo: ["CNAME", "DNAME"]})).toEqual({ name: ["ANAME", "BNAME", "CNAME", "DNAME"] });
+    expect(mapper.map({ foo: ["ANAME", "BNAME"] }, { foo: ["CNAME", "DNAME"] })).toEqual({ name: ["ANAME", "BNAME", "CNAME", "DNAME"] });
   });
 
   test("mapArray - fetch nested properties", () => {
@@ -405,7 +405,7 @@ describe("mapper.ts", () => {
     // arrange
     const mapper = new Mapper(
       {
-        "names": { $orderByName: ["$..name", { givenName: "$.givenName", familyName: "$.surname" }]}
+        "names": { $orderByName: ["$..name", { givenName: "$.givenName", familyName: "$.surname" }] }
       },
       {
         $orderByName: (s: Array<any>) => s.sort((a, b) =>
@@ -456,46 +456,93 @@ describe("mapper.ts", () => {
     expect(actualValue).toEqual(expectedValue)
   })
 
-  
+
   test("Asynchronous middleware", async () => {
     const promisedTimeout = promisify(setTimeout)
     // arrange
     const customMiddleware = {
-        "$write5Ones": async () => {
-            await promisedTimeout(1000)
-            return 11111
-        }
+      "$write5Ones": async () => {
+        await promisedTimeout(1000)
+        return 11111
+      }
     }
     const template = {
-        "name": { $override: { x: "$.bar", y: "$.info.name" } },
-        "type": {
-            complexInnerType: "$.innerType",
-            innerName: { $write5Ones: null, literal: true }
-        }
+      "name": { $override: { x: "$.bar", y: "$.info.name" } },
+      "type": {
+        complexInnerType: "$.innerType",
+        innerName: { $write5Ones: null, literal: true }
+      }
     }
     const source = {
-        bar: "ANAME",
-        innerType: true,
-        info: {
-            name: "Tony"
-        }
+      bar: "ANAME",
+      innerType: true,
+      info: {
+        name: "Tony"
+      }
     }
 
     const expectedValue = {
-        name: "Tony",
-        type: {
-            complexInnerType: true,
-            innerName: 11111
-        }
+      name: "Tony",
+      type: {
+        complexInnerType: true,
+        innerName: 11111
+      }
     }
 
     // act
     const mapper = new Mapper(template, {
-        ...defaultMiddleware,
-        ...customMiddleware
+      ...defaultMiddleware,
+      ...customMiddleware
     })
     const actualValue = await mapper.map(source)
     // assert
     expect(actualValue).toEqual(expectedValue)
-})
+  })
+
+  test("dynamic keys", () => {
+    // arrange
+    const mapper = new Mapper({
+      people: [
+        "$..names",
+        {
+          "$.givenName": "$.surname"
+        }
+      ]
+    })
+
+    const source = {
+      foo: {
+        names: [
+          {
+            givenName: "Fred",
+            surname: "Flintstone"
+          },
+          {
+            givenName: "Wilma",
+            surname: "Flintstone"
+          },
+          {
+            givenName: "Barney",
+            surname: "Rubble"
+          }
+        ]
+      }
+    };
+    // act
+    const actualValue = mapper.map(source);
+    // assert
+    expect(actualValue).toEqual({
+      people: [
+        {
+          Fred: "Flintstone"
+        },
+        {
+          Wilma: "Flintstone"
+        },
+        {
+          Barney: "Rubble"
+        }
+      ]
+    })
+  })
 });
