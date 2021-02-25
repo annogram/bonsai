@@ -111,7 +111,7 @@ export class Mapper {
 
   private walk(source: any, path: any, result: any, key: any): void {
     const type = this.type(path)
-    if (this.type(key) === "string" && key?.indexOf('$') == 0) {
+    if (this.type(key) === "string" && key.indexOf('$') == 0 && key.indexOf('.') == 1) {
       key = query(source, key)
     }
     switch (type) {
